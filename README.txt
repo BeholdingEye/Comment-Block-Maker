@@ -16,6 +16,10 @@ Tested with Python 2.7 and 3.4 on Debian GNU/Linux, and 2.6 on Mac OS X. MS Wind
 
 CHANGELOG
 
+Version 1.1.0 - 09 November 2015
+
+This script can now be used as a custom command in Geany.
+
 Version 1.0.0 - 20 October 2015
 
 First public release.
