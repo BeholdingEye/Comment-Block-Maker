@@ -4,7 +4,7 @@
 #                                                                      #
 #                         COMMENT BLOCK MAKER                          #
 #                                                                      #
-#                            Version 1.0.0                             #
+#                            Version 1.1.0                             #
 #                                                                      #
 #            Copyright 2015 Karl Dolenc, beholdingeye.com.             #
 #                         All rights reserved.                         #
@@ -23,6 +23,13 @@
 #  text into a fixed width comment block. The interface is quite       #
 #  self-explanatory, but Usage Instructions are available in the Help  #
 #  menu.                                                               #
+#                                                                      #
+#  New in version 1.1.0 is that the script can be used as a custom     #
+#  command in Geany (Edit > Format > Send Selection to > Set Custom    #
+#  Commands). Whatever is selected when the command is run will be     #
+#  put in the Plain Text Input box, and whatever is in the Comment     #
+#  Block Output box will replace the selection in Geany when CBM       #
+#  is exited.                                                          #
 #                                                                      #
 #                                 GUI                                  #
 #                                                                      #
@@ -109,8 +116,7 @@
 #  MA 02110-1301, USA.
 #  
 
-
-# --------------------- IMPORTS ---------------------
+# --------------------- IMPORTS & SETUP ---------------------
 
 from __future__ import print_function
 # Future builtins imports must be at top of script for 2.6, but fail to load in 3
@@ -124,14 +130,17 @@ import sys, re
 import platform as pl
 import textwrap as tw
 gotTtk = True # Set to False if you prefer not to have ttk interface
-print("Comment Block Maker starting up...")
+# inConsole will prevent "printing to terminal" when run from an IDE, like Geany
+inConsole = sys.stdin.isatty()
+if inConsole: print("Starting up Comment Block Maker...")
 if int(pl.python_version().split(".")[0]) >= 3: # Python version 3 or greater
     import tkinter as tk
     if gotTtk:
         import tkinter.ttk as ttk # Needed for Sizegrip, Scrollbar and themes
-        print("Info: Module ttk available and loaded")
+        if inConsole: print("Info: Module ttk available and loaded")
     else:
-        print("Info: Module ttk not loaded, using Tkinter")
+        if inConsole: print("Info: Module ttk not loaded, using Tkinter")
+        pass
     import tkinter.font as tkfont
     import tkinter.messagebox as msg
     import tkinter.filedialog as fd
@@ -141,12 +150,13 @@ elif int(pl.python_version().split(".")[0]) == 2: # Python version 2.x
     if gotTtk:
         try:
             import ttk # This will fail if ttk not installed, as can be the case in 2.6
-            print("Info: Module ttk available and loaded")
+            if inConsole: print("Info: Module ttk available and loaded")
         except ImportError as e:
-            print("Info: Module ttk not loaded, using Tkinter")
+            if inConsole: print("Info: Module ttk not loaded, using Tkinter")
             gotTtk = False
     else:
-        print("Info: Module ttk not loaded, using Tkinter")
+        if inConsole: print("Info: Module ttk not loaded, using Tkinter")
+        pass
     import tkFont as tkfont
     import tkMessageBox as msg
     import tkFileDialog as fd
@@ -234,7 +244,7 @@ class TkGui(object):
                 themeStyle.theme_use("alt")
             else:
                 themeStyle.theme_use("default")
-            print("Using ttk style theme:",themeStyle.theme_use())
+            if inConsole: print("Using ttk style theme:",themeStyle.theme_use())
         # Globally set items
         textSelectColor = "#99CCFF"
         #bgColor = "#D1D1CE" # No longer used, kept here for reference
@@ -247,7 +257,7 @@ class TkGui(object):
                 break
             except: # Fail silently, continue font search
                 pass
-        print("Using text font:",textFont)
+        if inConsole: print("Using text font:",textFont)
         textFontSize = "10"
         commentChar = "#" # Could be any -single- 1 in [#$;:/*\\]
         numChars = 72
@@ -294,7 +304,7 @@ class TkGui(object):
                     lFile.close()
                     inputText.delete("1.0", "end")
                     inputText.insert("1.0", lText)
-                    print("Loaded file: "+filePath)
+                    if inConsole: print("Loaded file: "+filePath)
                 except Exception as e:
                     # Negative number for size in pixels not points
                     window.option_add('*Dialog.msg.font', '-weight normal -size -12')
@@ -329,7 +339,9 @@ class TkGui(object):
         def quit_from_menu():
             """Print Comment box contents in Terminal and exit"""
             if len(commentText.get("1.0", "end")) > 1:
-                print("Comment block:\n\n" + commentText.get("1.0", "end") + "\nDone.")
+                if inConsole: print("Comment block:")
+                print(commentText.get("1.0", "end"))
+                if inConsole: print("Done.")
             winTop.quit()
 
         # --------------------- Menu items
@@ -406,6 +418,8 @@ class TkGui(object):
                         font=(textFont, textFontSize), selectbackground=textSelectColor, 
                         selectforeground="black", padx=4, pady=4, relief="flat", 
                         undo=True, wrap="word", highlightthickness=0, name="inputText")
+        # Without testing inConsole, script could freeze here
+        if not inConsole: inputText.insert("end", sys.stdin.read())
         # Scrollbar for text box
         if gotTtk: inputScroll=ttk.Scrollbar(inputTextFrame, name="inputScroll")
         else: inputScroll=tk.Scrollbar(inputTextFrame, name="inputScroll")
@@ -611,7 +625,7 @@ class TkGui(object):
             winGrip.place(relx=1.0, rely=1.0, anchor="se")
             winGrip.lift()
 
-if __name__=="__main__":
+if __name__ == "__main__":
     window = tk.Tk()
     app = TkGui(window)
     window.mainloop()
